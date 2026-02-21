@@ -5,6 +5,7 @@
 import streamlit as st
 import numpy as np
 import joblib
+from sklearn.datasets import load_iris
 
 # -----------------------------
 # Page Config
@@ -45,6 +46,26 @@ model = joblib.load("hierarchical_iris_model.pkl")
 scaler = joblib.load("iris_scaler.pkl")
 
 # -----------------------------
+# Load Dataset (Required for Hierarchical)
+# -----------------------------
+data = load_iris()
+X = data.data
+X_scaled_full = scaler.transform(X)
+
+# Fit clustering on full dataset
+model.fit(X_scaled_full)
+
+# Get cluster labels
+labels = model.labels_
+
+# Compute cluster centroids manually
+centroids = []
+for i in range(3):
+    centroids.append(X_scaled_full[labels == i].mean(axis=0))
+
+centroids = np.array(centroids)
+
+# -----------------------------
 # Input Section
 # -----------------------------
 col1, col2 = st.columns(2)
@@ -69,7 +90,9 @@ if st.button("Predict Cluster"):
 
     scaled_input = scaler.transform(input_data)
 
-    cluster = model.fit_predict(scaled_input)[0]
+    # Assign to nearest centroid
+    distances = np.linalg.norm(centroids - scaled_input, axis=1)
+    cluster = np.argmin(distances)
 
     st.subheader("Cluster Assignment:")
     st.success(f"Cluster {cluster}")
